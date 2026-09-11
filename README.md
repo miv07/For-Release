@@ -43,6 +43,23 @@ FastAPI web dashboard for responsive quote and chart views.
   builds.
 - Updated the PyInstaller spec and build helper to include image resources.
 - Added request-local ticker handling to prevent stale chart data reuse.
+- Added a persistent watchlist (backed by `localStorage`) shared between the
+  standalone Watchlist page and the screener's "View Watchlist" modal, with
+  ticker logos and price-direction coloring on every row.
+- Restricted website charts to regular trading hours (9:30 AM - 4:00 PM ET),
+  matching the "current session only" behavior across every chart surface.
+- Consolidated duplicated front-end logic (clear-input buttons, modal
+  open/close wiring, chart logos, price-direction coloring) into a shared
+  `common.js` helper module used by every page script.
+- Split the monolithic `pensive_trader.css` into focused stylesheets
+  (`modals.css`, `forms.css`, `pages.css`, `mobile.css`) imported from a
+  slim base file, so each concern can be maintained independently.
+- Standardized action-button sizing on mobile via a shared `.action-button`
+  class so every primary button (Get Quote, Add, Search, Open
+  Chart, View Watchlist, Clear All, etc.) has identical dimensions.
+- Removed the Wikipedia/Wikidata "Company Search" feature (route, page,
+  scripts, styles, and the `wikipedia-api` dependency) as unnecessary bloat;
+  the quote panel no longer links out to a research page.
 
 ### Latest Behavioral Changes
 
