@@ -86,7 +86,7 @@ FastAPI web dashboard for responsive quote and chart views.
   Watchlist workflows, with an X-only close control in the top-right corner.
 - Expanded the shared browser analysis modal to match the desktop analysis
   hierarchy with price/change/timeframe context, SPY and sector-ETF excess
-  returns, normalized and raw factors, and the 40%/35%/25% weighting mix.
+  returns, normalized and raw factors.
   Mobile screens use stacked cards, a persistent close control, and vertical
   scrolling without horizontal overflow.
 - Added a smooth color, background, border, and highlight transition when the
