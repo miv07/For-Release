@@ -25,7 +25,7 @@ FastAPI web dashboard for responsive quote and chart views.
   - Post-market views show only post-market values.
   - Regular and closed-market views hide extended-hours fields.
 
-## Version 0.0.5
+## Version 0.0.7
 
 ### Highlights
 
@@ -86,7 +86,7 @@ FastAPI web dashboard for responsive quote and chart views.
   Watchlist workflows, with an X-only close control in the top-right corner.
 - Expanded the shared browser analysis modal to match the desktop analysis
   hierarchy with price/change/timeframe context, SPY and sector-ETF excess
-  returns, normalized and raw factors.
+  returns.
   Mobile screens use stacked cards, a persistent close control, and vertical
   scrolling without horizontal overflow.
 - Added a smooth color, background, border, and highlight transition when the
@@ -134,6 +134,12 @@ FastAPI web dashboard for responsive quote and chart views.
 
 Version 0.0.5 introduces a bounded statistical weighting model that combines
 three independent views of a ticker's current behavior:
+
+| Factor | Input | Purpose
+| --- | --- | --- |
+| Relative alpha | Return differences versus SPY and the mapped sector ETF | Measures market and peer outperformance
+| Integral persistence | Area represented by `current_integral` | Measures whether recent direction is sustained
+| Derivative velocity | Spline slope represented by `avg_derivative` | Measures immediate directional momentum
 
 The composite is clipped to `[-1.0, 1.0]` and converted into an easier-to-read
 conviction percentage:
@@ -243,25 +249,176 @@ implementation details, see [Statistical Analysis.md](./Statistical%20Analysis.m
 - Targeted chart and API tests pass where optional runtime dependencies are
   available.
 
+## Version 0.0.7
+
+### Highlights
+
+- **ETF-aware sector-weighted market regime and relative alpha.** Individual
+  stocks still compare against one mapped GICS sector ETF, but ETFs now
+  compare against a holdings-weighted blend of *every* sector they actually
+  hold (sourced from Yahoo Finance's `topHoldings`), since a single-sector
+  comparison misrepresents a diversified fund. Missing benchmark data for one
+  held sector is excluded and the remaining weights are renormalized rather
+  than silently understating the blended return; a `min_coverage` guard
+  discards the blend entirely if too little of the ETF's declared weight
+  actually resolved.
+- **ETF sector-mix display.** Ticker detail windows, the desktop analysis
+  window, and the web analysis modal now show a "Sector Mix" breakdown (e.g.
+  "Technology 38.7%, Financial Services 12.1%, ..., +6 more (21.1%)") for
+  ETFs instead of "Sector: N/A", built from the same holdings data above.
+- **Macro Market Environment risk profile.** A new "Market Environment" link
+  (web header and desktop main window) opens a modal/window computing a
+  0–100 macro credit-risk score from seven FRED-sourced (or fallback)
+  inputs — Corporate Debt-to-GDP, Equity Risk Premium (SPY earnings yield vs.
+  10-Year Treasury), Fed Funds Pressure, Core PCE Inflation, Credit Spread
+  Stress, Yield-Curve Inversion, and Federal Debt-to-GDP — classified into
+  Low/Elevated/Critical tranches with the same red/yellow/green badge scheme
+  used elsewhere in the app. SPY's trailing P/E is fetched live from Yahoo
+  Finance rather than hardcoded; every factor reports whether it used a live
+  or fallback value, and the UI visibly flags any estimated figures instead
+  of presenting them with the same confidence as live data. The desktop
+  window's close control now withdraws (hides) rather than destroys the
+  window, so its already-fetched results are stashed and reappear instantly
+  on reopen instead of re-fetching from FRED every time.
+- **Empirical backtesting for the Market Environment model.** A new
+  "Backtest" button reconstructs the macro risk score at every historical
+  month back to a user-selected start date (as early as 1990, default 1999)
+  through an optional end date, using point-in-time-approximated FRED data
+  and real SPY price history, then reports its correlation with SPY's actual
+  subsequent 3/6/12-month performance — including a plain-language ✓/✗ check
+  for whether riskier months really did precede worse outcomes, color-coded
+  correlation values, and a "How to read these results" explainer covering
+  what the forward-horizon panels, tranches, and correlation values mean.
+  Running this backtest surfaced real, actionable evidence: the model's
+  factor weights were rebalanced based on which factors' scores actually
+  correlated with subsequent SPY performance in the data (Corporate
+  Debt-to-GDP and Equity Risk Premium turned out to be the strongest,
+  most consistent predictors and were weighted up; Federal Debt-to-GDP
+  correlated in the wrong direction — likely confounded by its near-perfect
+  correlation with the passage of time over the sample's long bull market —
+  and was weighted down).
+- **Fixed a real data bug found while investigating the COVID-19 crash**:
+  `BCNSDODNS` (Corporate Debt-to-GDP's debt input) was reporting its
+  point-in-time (`output_type=4`) vintage values in a different unit than
+  its standard endpoint — roughly 1,000x smaller for the same date, with no
+  indication of this in FRED's series metadata — which silently zeroed out
+  Corporate Debt-to-GDP (a 25%-weight factor) for every reconstructed month
+  from 2010-04-01 onward. The point-in-time fetch now sanity-checks each
+  value against the standard series and substitutes it when they differ by
+  more than a 10x ratio, a threshold far beyond any plausible real revision.
+- Fixed a Tkinter theming bug where every Market Environment progress bar
+  rendered green regardless of its actual risk level, because Windows' default
+  ttk theme renders `Progressbar` through the OS's native visual-styles engine
+  and ignores `ttk.Style` color overrides entirely. Bars are now drawn
+  directly on a `tk.Canvas`, which is unaffected by native theming.
+- Fixed the per-ticker statistical model's integral (trend-persistence)
+  factor, which previously saturated to its extreme value within the first
+  hour of almost any session regardless of how large the actual move was,
+  because it compared a time-accumulating area against a fixed, time-blind
+  threshold. It now divides by the elapsed session span first, making the
+  score reflect the *size* of a sustained move rather than just how long the
+  session has been running.
+
+### Reliability and cleanup
+
+- Removed dead code accumulated across the project (unused imports, unused
+  local variables, an unreachable exception-handling path, and a handful of
+  functions with no remaining callers), including a stray byte-order-mark in
+  `utils/Nasdaq.py`.
+- Fixed several smaller Market Environment issues found along the way: a
+  Credit Spread Stress floor set above real-world observed lows (which
+  rendered as a fully uncolored bar instead of a small visible one), a
+  closure bug where a caught exception's message could be referenced after
+  Python auto-unbinds it, and a crash when a historical backtest month had no
+  forward-looking price window at all.
+
+### Validation
+
+- Full automated test suite: 90 tests passing (17 pre-existing skips due to
+  an unrelated local FastAPI environment gap), up from the prior release's
+  baseline, including new coverage for the ETF sector-weighting math, the
+  Market Environment risk profile and its live-data fallbacks, and the
+  backtest's date validation, point-in-time data reconstruction, and the
+  units-scale-mismatch repair.
+- Verified the Market Environment window's hide/reopen behavior and the
+  progress-bar coloring fix with headless Tkinter smoke tests driving a real
+  `mainloop`.
+
+## Version 0.0.7
+
+### Highlights
+
+- **Ticker-vs-market comparison for the Backtest.** The Backtest modal's
+  "Compare:" toggle now switches between "Market only (SPY)" and "Ticker
+  vs. market" mode. In ticker mode, the underlying market-environment
+  backtest runs unchanged — the risk-score reconstruction is purely
+  macro/FRED-based and never depends on which ticker is chosen — but the
+  modal also fetches the chosen ticker's own historical price history and
+  adds, per risk tranche, that ticker's mean forward return and drawdown,
+  its excess return over SPY, and the sample size behind those figures,
+  plus overall correlation values for the ticker itself. The ticker is
+  validated against the existing symbol catalog, and results are cached on
+  the full `(start_date, end_date, ticker)` combination so repeat requests
+  are served instantly. `GET /api/backtest-risk-profile` accepts an
+  optional `?ticker=` query parameter, and
+  `Market_Analysis/backtest_risk_profile.py`'s SPY-only price-history
+  fetcher was generalized to work for any valid ticker.
+- **Nasdaq market-status resilience.** `NasdaqDataFetcher.check_market_status()`
+  now retries transient 403/429 responses from Nasdaq's unofficial
+  `market-info` endpoint with escalating backoff — mirroring the retry
+  pattern already used elsewhere for year-to-date returns — and, if Nasdaq
+  is still unavailable once retries are exhausted, falls back to Yahoo
+  Finance's `marketState` (mapped to Nasdaq's own status vocabulary), then
+  to the last known cached status, before finally surfacing an error. A
+  single blocked or rate-limited Nasdaq request no longer breaks market-status
+  detection for the whole app.
+- Backtest modal UI polish: the "Compare:" mode radio buttons and their
+  labels are now reliably aligned across browsers, the ticker entry field
+  lives inline with the mode toggle instead of in its own separate row, and
+  the mobile layout (radio dot size, label/column alignment, and ticker
+  input sizing) was reworked to stay correct across the entire mobile width
+  range rather than only at one specific breakpoint.
+
+### Validation
+
+- Full automated test suite: 107 tests passing (17 pre-existing skips due to
+  an unrelated local FastAPI environment gap), including new coverage for
+  the ticker comparison math and generalized price-history fetch
+  (`Market_Analysis/Unit Test/test_backtest_risk_profile.py`) and the
+  Nasdaq retry/Yahoo-fallback chain (`utils/Unit Test/test_nasdaq.py`).
+
 ## Code documentation map
 
 The implementation is divided by responsibility:
 
 - `common/request_quotes.py` coordinates provider requests and normalizes
   market-session state.
-- `utils/Yahoo_Finance_helper.py` handles Yahoo live quotes and paginated
-  screener records, including provider-field fallbacks.
+- `common/sectors.py` maps sectors/Yahoo holdings keys to benchmark ETFs,
+  blends an ETF's holdings-weighted sector return, and formats its sector-mix
+  breakdown for display.
+- `utils/Yahoo_Finance_helper.py` handles Yahoo live quotes, paginated
+  screener records, ETF holdings/trailing-P/E lookups, and provider-field
+  fallbacks.
+- `Market_Analysis/market_analyzer.py` computes the macro Market Environment
+  risk profile (`generate_spy_risk_profile`) from FRED/Yahoo inputs.
+- `Market_Analysis/backtest_risk_profile.py` reconstructs that risk profile
+  across historical months and correlates it with SPY's actual subsequent
+  performance, optionally comparing a chosen ticker's own forward returns
+  against SPY for each risk tranche.
 - `Fast_API/stock_api.py` exposes HTML routes and JSON APIs for quotes, charts,
-  screener results, and statistical analysis.
+  screener results, statistical analysis, the Market Environment profile, and
+  the historical backtest (with optional per-ticker comparison).
 - `Interface/pensive_trader_display.py` owns the desktop search, watchlist,
-  screener/sector toggles, analyzer queue display, worker queue, logo loading,
-  and sortable result Treeview.
-- `Interface/watchlist_interface.py`, `Interface/root_top_level.py`, and
-  `Math/price_plot.py` render desktop watchlist, detail, and chart surfaces.
+  screener/sector/market-environment toggles, analyzer queue display, worker
+  queue, logo loading, and sortable result Treeview.
+- `Interface/watchlist_interface.py`, `Interface/root_top_level.py`,
+  `Interface/analysis_window.py`, `Interface/market_environment_window.py`,
+  and `Math/price_plot.py` render desktop watchlist, detail,
+  statistical-analysis, macro-risk, and chart surfaces.
 - `JavaScript_Interface/` contains browser rendering and interaction logic;
-  `common.js` renders shared statistical-analysis dialogs, while `screener.js`
-  handles normalized screener rows, row-level analysis actions, and
-  client-side sorting.
+  `common.js` renders shared statistical-analysis, Market Environment, and
+  Backtest dialogs, while `screener.js` handles normalized screener rows,
+  row-level analysis actions, and client-side sorting.
 - `CSS_Interface/` contains shared, page-specific, and responsive styles.
 
 When changing a shared behavior, update the owning layer first and verify both
