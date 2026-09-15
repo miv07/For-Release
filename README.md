@@ -9,10 +9,6 @@ A Tkinter-based stock screener for searching ticker symbols, tracking price
 changes, opening detail windows, and viewing market charts. It also includes a
 FastAPI web dashboard for responsive quote and chart views.
 
-## Live Website
-
-Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev/)
-
 ## Features
 
 - Search up to 5 ticker symbols at a time.
@@ -28,6 +24,33 @@ Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev
   - Pre-market views show only pre-market values.
   - Post-market views show only post-market values.
   - Regular and closed-market views hide extended-hours fields.
+- Audit the per-ticker Bullish/Bearish Score with a website-facing
+  Model Insight Report that summarizes score distribution, regime
+  frequency, factor influence, and data coverage without claiming predictive
+  accuracy.
+
+## Current Development Notes
+
+- Added `/model-insight`, a dedicated web page for the Model Insight
+  Report. The page accepts a ticker and lookback window, explains that the
+  report audits model behavior rather than forecasting returns, and renders the
+  API response as readable summary, interval, regime, factor, and coverage
+  cards.
+- Added `GET /api/model-insight`, backed by
+  `Math/descriptive_calibration.py`, to sample recent historical intraday bars
+  and summarize Bullish/Bearish Score distributions, composite-weight
+  distributions, regime frequencies, mean factor scores, mean factor
+  contributions, and source coverage.
+- Added Yahoo historical intraday bar support for calibration and reused the
+  historical cumulative-volume profile concept so relative-volume availability
+  is visible instead of silently neutral.
+- Renamed user-facing directional wording from conviction/directional position
+  to **Bullish/Bearish Score**. Compatibility aliases remain in the API for
+  older callers.
+- Improved the per-ticker analysis model with interval-matched Relative Alpha
+  and historical intraday relative-volume confirmation. Missing benchmark or
+  volume data is reported through source/coverage fields instead of being
+  treated as neutral evidence.
 
 ## Version 0.0.7
 
@@ -83,7 +106,7 @@ Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev
   watchlist toggle.
 - Added a normalized statistical analysis model based on relative alpha,
   integral trend persistence, and derivative velocity. The result exposes a
-  composite weight, conviction percentage, factor scores, and market regime.
+  composite weight, Bullish/Bearish Score, factor scores, and market regime.
 - Added `/api/analysis/{ticker}` so desktop and web interfaces use one
   statistical-analysis result format.
 - Added statistical-analysis dialogs to the web Analysis, Screener, and
@@ -105,7 +128,7 @@ Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev
   mobile screens.
 - Added the stock sector to every desktop analysis window and browser analysis
   modal. Yahoo asset-profile data supplies the sector when Nasdaq omits it.
-- Aligned web and desktop conviction inputs by making the analysis API load
+- Aligned web and desktop Bullish/Bearish Score inputs by making the analysis API load
   current SPY and mapped sector-ETF returns. Provider sector aliases such as
   Healthcare, Financial Services, and Basic Materials resolve to the same ETFs
   used by the desktop analyzers.
@@ -137,22 +160,23 @@ Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev
 ### Statistical Analysis
 
 Version 0.0.5 introduces a bounded statistical weighting model that combines
-three independent views of a ticker's current behavior:
+four views of a ticker's current behavior:
 
 | Factor | Input | Purpose
 | --- | --- | --- |
-| Relative alpha | Return differences versus SPY and the mapped sector ETF | Measures market and peer outperformance
-| Integral persistence | Area represented by `current_integral` | Measures whether recent direction is sustained
+| Relative alpha | Interval-matched return differences versus SPY and the mapped sector ETF | Measures market and peer outperformance on the selected timeframe
+| Integral persistence | Average normalized area represented by `current_integral` | Measures whether recent direction is sustained without time-of-day saturation
 | Derivative velocity | Spline slope represented by `avg_derivative` | Measures immediate directional momentum
+| Relative volume | Current cumulative volume versus expected historical minute-of-day cumulative volume | Confirms whether participation supports the existing price direction
 
 The composite is clipped to `[-1.0, 1.0]` and converted into an easier-to-read
-conviction percentage:
+Bullish/Bearish Score:
 
 ```text
-conviction = ((composite weight + 1.0) / 2.0) × 100
+Bullish/Bearish Score = ((composite weight + 1.0) / 2.0) × 100
 ```
 
-A conviction near 50% is neutral, higher values indicate increasingly bullish
+A score near 50% is neutral, higher values indicate increasingly bullish
 alignment, and lower values indicate increasingly bearish alignment. The
 result also includes a market-regime label, normalized factor scores, raw
 integral and derivative values, and the ticker's excess returns versus its
@@ -175,13 +199,18 @@ Statistical analysis is available from:
 - Each web Market Screener result
 - Each web Watchlist ticker row
 - `GET /api/analysis/{ticker}?interval=One`
+- The web Model Insight page at `/model-insight`
+- `GET /api/model-insight?ticker=MSFT&days=45`
 
 Every analysis view identifies the ticker and sector. The shared desktop
-window also presents separate composite and conviction cards, the one-minute
+window also presents separate composite and Bullish/Bearish Score cards, the one-minute
 timeframe, SPY and sector excess returns, all normalized factor scores, raw
 integral and average-derivative values.
 Browser dialogs expose the same principal result fields through the shared API
-response, keeping web and desktop conviction scores consistent.
+response, keeping web and desktop Bullish/Bearish Scores consistent. The
+Model Insight page separately audits recent score distributions, regime
+frequencies, factor contributions, and source coverage; it does not compute
+forward returns.
 
 For the complete formulas, scaling constants, interpretation matrix, and
 implementation details, see [Statistical Analysis.md](./Statistical%20Analysis.md).
@@ -410,8 +439,9 @@ The implementation is divided by responsibility:
   performance, optionally comparing a chosen ticker's own forward returns
   against SPY for each risk tranche.
 - `Fast_API/stock_api.py` exposes HTML routes and JSON APIs for quotes, charts,
-  screener results, statistical analysis, the Market Environment profile, and
-  the historical backtest (with optional per-ticker comparison).
+  screener results, statistical analysis, descriptive model insight, the Market
+  Environment profile, and the historical backtest (with optional per-ticker
+  comparison).
 - `Interface/pensive_trader_display.py` owns the desktop search, watchlist,
   screener/sector/market-environment toggles, analyzer queue display, worker
   queue, logo loading, and sortable result Treeview.
@@ -421,8 +451,9 @@ The implementation is divided by responsibility:
   statistical-analysis, macro-risk, and chart surfaces.
 - `JavaScript_Interface/` contains browser rendering and interaction logic;
   `common.js` renders shared statistical-analysis, Market Environment, and
-  Backtest dialogs, while `screener.js` handles normalized screener rows,
-  row-level analysis actions, and client-side sorting.
+  Backtest dialogs, `calibration.js` renders the descriptive Model Insight page,
+  while `screener.js` handles normalized screener rows, row-level analysis
+  actions, and client-side sorting.
 - `CSS_Interface/` contains shared, page-specific, and responsive styles.
 
 When changing a shared behavior, update the owning layer first and verify both
@@ -435,6 +466,10 @@ and a non-empty, non-`N/A` value.
   ticker information.
 - Package versions and environment differences may require additional
   dependencies for local builds.
+
+## Live Website
+
+Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev/)
 
 ## License
 
