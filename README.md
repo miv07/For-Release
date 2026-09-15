@@ -9,6 +9,10 @@ A Tkinter-based stock screener for searching ticker symbols, tracking price
 changes, opening detail windows, and viewing market charts. It also includes a
 FastAPI web dashboard for responsive quote and chart views.
 
+## Live Website
+
+Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev/)
+
 ## Features
 
 - Search up to 5 ticker symbols at a time.
@@ -466,10 +470,6 @@ and a non-empty, non-`N/A` value.
   ticker information.
 - Package versions and environment differences may require additional
   dependencies for local builds.
-
-## Live Website
-
-Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev/)
 
 ## License
 
