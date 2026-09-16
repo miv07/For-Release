@@ -35,6 +35,19 @@ Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev
 
 ## Current Development Notes
 
+- Added a non-predictive **SPY Intraday Regime** to every desktop and web
+  statistical-analysis view. The panel summarizes weighted sector breadth,
+  persistence confidence, and optional live HYG/IEF/LQD/TLT/SHY confirmation;
+  it is the same context readout whether the selected symbol is SPY, a stock,
+  or another ETF.
+- Added confirmed acceleration as a low-weight statistical-analysis factor.
+  It requires two material, same-direction completed-bar second-derivative
+  samples, so missing confirmation is shown as unavailable rather than neutral.
+- Kept FRED macro risk exclusively in Market Environment. It is not an input
+  to the SPY Intraday Regime or per-ticker statistical model.
+- Added a portrait-mobile hamburger dropdown for secondary navigation. The
+  compact header retains Pensive Trader, Market Environment, and Backtest;
+  phone landscape keeps the original visible navigation.
 - Added `/model-insight`, a dedicated web page for the Model Insight
   Report. The page accepts a ticker and lookback window, explains that the
   report audits model behavior rather than forecasting returns, and renders the
@@ -163,14 +176,15 @@ Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev
 
 ### Statistical Analysis
 
-Version 0.0.5 introduces a bounded statistical weighting model that combines
-four views of a ticker's current behavior:
+Version 0.0.5 introduced a bounded statistical weighting model that now
+combines five views of a ticker's current behavior:
 
 | Factor | Input | Purpose
 | --- | --- | --- |
 | Relative alpha | Interval-matched return differences versus SPY and the mapped sector ETF | Measures market and peer outperformance on the selected timeframe
 | Integral persistence | Average normalized area represented by `current_integral` | Measures whether recent direction is sustained without time-of-day saturation
 | Derivative velocity | Spline slope represented by `avg_derivative` | Measures immediate directional momentum
+| Acceleration confirmation | Two material, same-direction completed-bar spline second-derivative samples | Confirms that velocity is consistently increasing or decreasing
 | Relative volume | Current cumulative volume versus expected historical minute-of-day cumulative volume | Confirms whether participation supports the existing price direction
 
 The composite is clipped to `[-1.0, 1.0]` and converted into an easier-to-read
