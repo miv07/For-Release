@@ -35,6 +35,17 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
 ## Current Development Notes
 
+- Added All Time chart views at weekly, monthly, and yearly resolution to the
+  web and desktop chart selectors. They fetch complete Nasdaq and Yahoo Finance
+  daily histories concurrently, select Nasdaq unless Yahoo returns more usable
+  history, and retain each calendar period's final available close.
+- Added chart navigation on every surface: web Canvas charts support
+  wheel/trackpad and two-finger-pinch zoom, horizontal drag pan, and Reset
+  Zoom; desktop charts use Matplotlib's built-in zoom, pan, navigation history,
+  and reset toolbar.
+- Fixed stale Year-to-Date series across an Eastern calendar-day change by
+  refetching a requester's Nasdaq daily history when its cached payload belongs
+  to an earlier date.
 - Added a non-predictive **SPY Intraday Regime** to every desktop and web
   statistical-analysis view. The panel summarizes weighted sector breadth,
   persistence confidence, and optional live HYG/IEF/LQD/TLT/SHY confirmation;
