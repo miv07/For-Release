@@ -11,7 +11,7 @@ FastAPI web dashboard for responsive quote and chart views.
 
 ## Live Website
 
-Visit the live project: [Pensive Trader](https://stock-screener.fastapicloud.dev/)
+Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
 ## Features
 
