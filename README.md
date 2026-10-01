@@ -13,112 +13,126 @@ FastAPI web dashboard for responsive quote and chart views.
 
 Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
+## Current Changes
+
+- Added an options analyzer. It builds a strategy around a target delta from
+  the Nasdaq chain (calls, puts, covered calls, cash-secured puts, vertical
+  spreads, straddles, strangles, iron condors) and scores probability of
+  profit, breakevens, max profit/loss, and expected profit against the
+  underlying's realized volatility, with a strike ladder from deep in the
+  money to far out of it and early-assignment warnings for short legs.
+  - Positions can be held to expiration, closed on a chosen date (any
+    contract with 2+ days to expiry), or closed intraday after a set number of
+    trading hours, including same-day (0DTE) contracts. Results show the move
+    needed by exit and the time decay paid while holding.
+  - Time to expiry is measured to the 4 p.m. ET close and projections count
+    actual trading sessions, so short-dated contracts are priced correctly.
+  - Intraday holds use a time-of-day volatility profile built from ~45 days
+    of Yahoo 5-minute bars (overnight gaps excluded, cached per symbol per
+    day), falling back to daily-close volatility if the bars are unavailable.
+  - Figures use mid prices and hold implied volatility constant; analyses run
+    after hours use the last closing quotes.
+- Added an **Options** button beside **Fundamentals** on the Analysis page.
+- Web Screener and Watchlist rows now open one combined dialog with the chart,
+  statistical analysis, and options analysis; the per-row Analyze and Options
+  buttons were removed.
+- Fixed the options dialog close control rendering at the bottom-left on
+  mobile; it now matches the other dialogs' fixed top-right button.
+- Web ticker logos now load from Parqet first, falling back to Financial
+  Modeling Prep, whose image host had been timing out.
+- Replaced the web Market Screener's Bias and Agreement filters with an
+  Average score filter. It offers the same Greater than, At least, Less than,
+  and At most operators as the percent-change filter, applied to an optional
+  0-100 Score % threshold. The Bias column was removed from screener results;
+  the Watchlist's Overall Intraday Screen keeps its bias and agreement filters.
+- Reworked the web Analysis page into three stacked sections: price and quote
+  summary, graph, and statistical analysis. The ticker action is now
+  **Analyze**; analysis and chart content no longer open in modals on this page.
+- Restored stock-only company research. **Learn More** opens a dedicated,
+  lazy-loaded Wikipedia/Wikidata modal after a stock is analyzed, and the
+  Pensive bot uses the same company profile source. ETFs are excluded from
+  this research path while retaining normal quote and analysis support.
+- Added VWAP position to the per-ticker score. Yahoo quote summary has no VWAP
+  field, so the app derives a session approximation from Yahoo one-minute
+  closes and bar volumes. Current price at or above VWAP scores `+1`; below
+  VWAP scores `-1`; the declared composite weight is `0.15`.
+- Updated Year-to-Date behavior so the latest point and return use current
+  price during regular trading. The post-close historical refresh replaces
+  the provisional point with Nasdaq's official daily close, and provisional
+  values are not written to the persistent YTD cache. Date-only YTD labels now
+  use an explicit UTC contract so they no longer render one day behind.
+- Fixed pre-market fallback charts to anchor their timestamps at 9:30 ET and
+  use previous close when today's regular-market open is unavailable.
+
 ## Features
 
 - Search up to 5 ticker symbols at a time.
 - View live price, change, and percentage change information.
 - Open individual ticker detail windows.
 - View chart options for different time ranges.
-- Launch a desktop GUI with a splash screen.
-- Use responsive quote and chart pages on desktop and mobile.
-- View extended-hours quote data across the GUI, desktop app, and mobile website.
-  - Pre-market price and change information.
-  - Post-market price and change information.
-- Display only the active extended session in each interface.
   - Pre-market views show only pre-market values.
-  - Post-market views show only post-market values.
-  - Regular and closed-market views hide extended-hours fields.
-- Audit the per-ticker Bullish/Bearish Score with a website-facing
-  Model Insight Report that summarizes score distribution, regime
   frequency, factor influence, and data coverage without claiming predictive
-  accuracy.
-
-## Current Development Notes
 
 - Added All Time chart views at weekly, monthly, and yearly resolution to the
-  web and desktop chart selectors. They fetch complete Nasdaq and Yahoo Finance
   daily histories concurrently, select Nasdaq unless Yahoo returns more usable
-  history, and retain each calendar period's final available close.
 - Added chart navigation on every surface: web Canvas charts support
   wheel/trackpad and two-finger-pinch zoom, horizontal drag pan, and Reset
-  Zoom; desktop charts use Matplotlib's built-in zoom, pan, navigation history,
   and reset toolbar.
 - Fixed stale Year-to-Date series across an Eastern calendar-day change by
-  refetching a requester's Nasdaq daily history when its cached payload belongs
   to an earlier date.
 - Added a non-predictive **SPY Intraday Regime** to every desktop and web
-  statistical-analysis view. The panel summarizes weighted sector breadth,
   persistence confidence, and optional live HYG/IEF/LQD/TLT/SHY confirmation;
   it is the same context readout whether the selected symbol is SPY, a stock,
-  or another ETF.
 - Added confirmed acceleration as a low-weight statistical-analysis factor.
-  It requires two material, same-direction completed-bar second-derivative
   samples, so missing confirmation is shown as unavailable rather than neutral.
-- Kept FRED macro risk exclusively in Market Environment. It is not an input
   to the SPY Intraday Regime or per-ticker statistical model.
 - Added a portrait-mobile hamburger dropdown for secondary navigation. The
-  compact header retains Pensive Trader, Market Environment, and Backtest;
   phone landscape keeps the original visible navigation.
 - Added `/model-insight`, a dedicated web page for the Model Insight
-  Report. The page accepts a ticker and lookback window, explains that the
   report audits model behavior rather than forecasting returns, and renders the
   API response as readable summary, interval, regime, factor, and coverage
-  cards.
 - Added `GET /api/model-insight`, backed by
-  `Math/descriptive_calibration.py`, to sample recent historical intraday bars
   and summarize Bullish/Bearish Score distributions, composite-weight
-  distributions, regime frequencies, mean factor scores, mean factor
   contributions, and source coverage.
 - Added Yahoo historical intraday bar support for calibration and reused the
-  historical cumulative-volume profile concept so relative-volume availability
   is visible instead of silently neutral.
-- Renamed user-facing directional wording from conviction/directional position
   to **Bullish/Bearish Score**. Compatibility aliases remain in the API for
-  older callers.
 - Improved the per-ticker analysis model with interval-matched Relative Alpha
   and historical intraday relative-volume confirmation. Missing benchmark or
   volume data is reported through source/coverage fields instead of being
   treated as neutral evidence.
-
 ## Version 0.0.7
 
-### Highlights
 
 - Added a FastAPI web dashboard alongside the Tkinter desktop application.
-- Added responsive quote and chart pages for desktop and mobile layouts.
 - Added asynchronous JSON refreshes for quote data and chart interval changes.
 - Added shared navigation and responsive styling across the HTML pages.
 - Added desktop chart logos and hover-based price inspection.
-- Standardized chart baselines so charts start at zero and use the session open
   as the price anchor.
-- Added absolute price change alongside current price and percentage change.
 - Matched website chart axis intervals to the desktop chart presentation.
 - Restored Financial Modeling Prep logo URLs across web and desktop charts.
 - Added bundled splash-screen and background image resources for PyInstaller
-  builds.
 - Updated the PyInstaller spec and build helper to include image resources.
-- Added request-local ticker handling to prevent stale chart data reuse.
 - Added a persistent watchlist (backed by `localStorage`) shared between the
-  standalone Watchlist page and the screener's "View Watchlist" modal, with
   ticker logos and price-direction coloring on every row.
 - Restricted website charts to regular trading hours (9:30 AM - 4:00 PM ET),
   matching the "current session only" behavior across every chart surface.
-- Consolidated duplicated front-end logic (clear-input buttons, modal
   open/close wiring, chart logos, price-direction coloring) into a shared
-  `common.js` helper module used by every page script.
 - Split the monolithic `pensive_trader.css` into focused stylesheets
-  (`modals.css`, `forms.css`, `pages.css`, `mobile.css`) imported from a
   slim base file, so each concern can be maintained independently.
 - Standardized action-button sizing on mobile via a shared `.action-button`
-  class so every primary button (Get Quote, Add, Search, Open
   Chart, View Watchlist, Clear All, etc.) has identical dimensions.
-- Removed the Wikipedia/Wikidata "Company Search" feature (route, page,
-  scripts, styles, and the `wikipedia-api` dependency) as unnecessary bloat;
-  the quote panel no longer links out to a research page.
+- Removed the former standalone Wikipedia/Wikidata Company Search page. The
+  current release restores stock-only research through the Learn More modal
+  and Pensive bot instead of reviving that separate page.
 - Added a Yahoo Finance Market Screener page and persistent desktop screener
   window with matching Filter, Percent change, and Screen Stocks controls.
-- Added screener result logos, normalized price/change/volume/market-cap data,
   and clickable sorting for both web and desktop result tables.
+### 2026-09-21
+- Refactor: centralize fetcher creation (`common/fetchers.py`) and prefer Nasdaq minute bars as the canonical source; Yahoo used as fallback.
+- Add `common/chart_processor.py` with minute-frame builders and a modulo-based aggregator (`aggregate_from_minute_df`).
+- Move normalization helpers to `common/normalizers.py`.
+- Fix timestamp encoding for aggregated bars (treat Eastern wall-clock as UTC to preserve provider epoch-ms), and add unit test `common/Unit Test/test_chart_aggregator.py`.
 - Added an Analyze Selected action to the desktop Market Screener. Quote
   history is prepared on a worker thread before the statistical-analysis
   window opens.
@@ -188,7 +202,7 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 ### Statistical Analysis
 
 Version 0.0.5 introduced a bounded statistical weighting model that now
-combines five views of a ticker's current behavior:
+combines six views of a ticker's current behavior:
 
 | Factor | Input | Purpose
 | --- | --- | --- |
@@ -197,6 +211,7 @@ combines five views of a ticker's current behavior:
 | Derivative velocity | Spline slope represented by `avg_derivative` | Measures immediate directional momentum
 | Acceleration confirmation | Two material, same-direction completed-bar spline second-derivative samples | Confirms that velocity is consistently increasing or decreasing
 | Relative volume | Current cumulative volume versus expected historical minute-of-day cumulative volume | Confirms whether participation supports the existing price direction
+| VWAP position | Current price versus a VWAP approximation from Yahoo one-minute closes and volumes | Adds `+1` at/above VWAP and `-1` below VWAP
 
 The composite is clipped to `[-1.0, 1.0]` and converted into an easier-to-read
 Bullish/Bearish Score:
