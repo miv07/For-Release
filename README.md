@@ -54,8 +54,7 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
   this research path while retaining normal quote and analysis support.
 - Added VWAP position to the per-ticker score. Yahoo quote summary has no VWAP
   field, so the app derives a session approximation from Yahoo one-minute
-  closes and bar volumes. Current price at or above VWAP scores `+1`; below
-  VWAP scores `-1`; the declared composite weight is `0.15`.
+  closes and bar volumes.
 - Updated Year-to-Date behavior so the latest point and return use current
   price during regular trading. The post-close historical refresh replaces
   the provisional point with Nasdaq's official daily close, and provisional
