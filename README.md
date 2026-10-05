@@ -15,6 +15,45 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
 ## Current Changes
 
+- Significantly sped up Market Screener scoring (roughly 6x faster on typical
+  scans): the 50/200 SMA filter's extra price-history fetch now only runs
+  when that filter is actually selected (automatically rescoring if it's
+  picked after an SMA-less scan already finished), screening concurrency was
+  raised from 4 to 10 since the work is network-latency-bound rather than
+  CPU-bound, and Yahoo/Nasdaq requests now reuse one shared HTTP connection
+  pool instead of opening a new one per symbol.
+- Added 9/21 EMA, 50/200 SMA, and Price vs VWAP filters to the Market
+  Screener, narrowing results to candidates whose trend indicators agree
+  with the Score filter.
+- Renamed the Market Screener's Direction filter to Score, with explicit
+  thresholds shown in each option (Bullish >=65, Bearish <=35, Neutral 35-65).
+- Fixed the Market Screener's filter controls packing into an uneven grid at
+  common screen widths; they now lay out in clean, evenly filled rows with
+  the Screen Stocks button centered below, and sized to its own text instead
+  of stretching full width on mobile.
+- Fixed Year-to-Date/All-Time/N-Year statistical-analysis scores reading as
+  more confident than their evidence supports. Acceleration, Relative
+  Volume, and VWAP Position confirmations are structurally unavailable on
+  these intervals (they require same-day intraday bars); the composite
+  weight no longer renormalizes over only the remaining factors, so their
+  absence now dilutes the score toward neutral instead of inflating the
+  other three factors by roughly 1.5x. Intraday renormalization, where
+  these gaps are usually transient, is unchanged.
+- Limited the Analysis modal's five-timeframe cross-check summary to
+  intraday intervals; Year-to-Date/All-Time/N-Year views now summarize only
+  their own timeframe instead of fetching and averaging unrelated
+  1/5/15/30/60-minute readings.
+- Added hover tooltips to every Market Environment factor card (and the Live
+  Fixed-Income Confirmation card) explaining what the underlying FRED/Yahoo
+  series measures and why it matters.
+- Fixed the header navigation links wrapping mid-word at common desktop
+  widths; the nav now wraps whole links onto a new row instead of breaking
+  inside a link's text.
+- Added optional Discipline & Mindset fields to the Trade Journal (emotional
+  state at entry, whether you followed your own rules, and a reflection
+  note) plus a win-rate-when-rules-followed-vs-deviated statistic. None of
+  these affect P&L or win rate.
+- Added a Trade Journal section to the About page.
 - Added an options analyzer. It builds a strategy around a target delta from
   the Nasdaq chain (calls, puts, covered calls, cash-secured puts, vertical
   spreads, straddles, strangles, iron condors) and scores probability of
@@ -54,7 +93,8 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
   this research path while retaining normal quote and analysis support.
 - Added VWAP position to the per-ticker score. Yahoo quote summary has no VWAP
   field, so the app derives a session approximation from Yahoo one-minute
-  closes and bar volumes.
+  closes and bar volumes. Current price at or above VWAP scores `+1`; below
+  VWAP scores `-1`; the declared composite weight is `0.15`.
 - Updated Year-to-Date behavior so the latest point and return use current
   price during regular trading. The post-close historical refresh replaces
   the provisional point with Nasdaq's official daily close, and provisional
