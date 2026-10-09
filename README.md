@@ -15,10 +15,255 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
 ## Current Changes
 
+- Intraday scores now use completed bars only. The latest still-forming bar is
+  set aside (chart unchanged), so 5m, 15m, 30m and 1h readings are ready
+  instead of provisional for most of each bar. The score updates when each bar
+  closes. Price path, matched-bar alpha, VWAP window and relative volume all
+  stop at the same completed bar. A timeframe needs two completed bars plus
+  the 9:30 open anchor (15m from 10:00, 30m from 10:30, 1h from 11:30).
+- Relative-alpha differentials now remove the part of a move explained by the
+  ticker's usual sensitivity to SPY and its sector benchmark
+  (`ticker - beta x benchmark`), using a robust beta estimated once per day
+  from the prior 10-20 complete five-minute sessions only. Falls back to the
+  raw difference when history is too thin; long-term intervals are unchanged.
+  The breakdown notes when the adjustment was applied, and Model Insight
+  reconstruction uses the same prior-only estimate.
+- Added two more optional descriptive rows: the latest five-minute move versus
+  the usual move at the same time of day, and range-based (high-low) variation
+  so far versus the same time in prior sessions. Neither affects the score.
+- Added collapsed, optional descriptive context in the score breakdown:
+  move versus recent variation, path efficiency, approximate same-time volume
+  percentile, robust recent slope, and an OHLC typical-price VWAP cross-check.
+  These are secondary observations only; they do not affect the score.
+- Fixed historical score reconstruction to build relative-volume profiles from
+  only the prior 10-20 completed ticker sessions. The session being scored and
+  later sessions are excluded; relative volume remains unavailable until there
+  are at least 10 prior complete sessions.
+- The score breakdown has its own intraday timeframe selector (1/5/15/30/60
+  minutes) and selected-timeframe score. Overall Summary remains the usable
+  multi-timeframe average; the breakdown does not present an averaged factor model.
+- Overall Summary is now the main web analysis score display: removed the analysis
+  timeframe selector and separate Bullish/Bearish Score card. Average, timeframe
+  scores and spread use two decimal places; the scale explanation sits immediately
+  below the average. The breakdown remains the default one-minute observation.
+- Centered the Overall Summary direction-count/spread readout. Corrected final
+  shortened intraday bars remaining provisional after the source reaches session
+  close; truncated or missing-minute partial bars remain provisional.
+- Removed public-facing internal composite and declared/effective weight displays.
+  Overall Summary now defaults to labeled timeframe graphics, coverage/readiness
+  and a concise spread/count readout; longer context is expandable. The web factor
+  breakdown uses signed score-point bars, with missing evidence explicitly N/A.
+  These are decision-support observations, not buy/short prompts. Calculation/API
+  weights and qualification behavior are unchanged.
+- Added descriptive timeframe disagreement alongside existing averages: individual
+  readings/readiness, score range, population SD and >=65/<=35/neutral counts.
+  Web analysis summaries, score tooltips and retained candidate/history evidence
+  distinguish mixed from aligned readings without changing strict qualification.
+  Added all-factor signed score-point contributions
+  to web/desktop breakdowns and candidate observation context. Missing factors
+  remain explicitly unavailable; historical contribution accounting shares the
+  calculator's decomposition. Weights, scores, thresholds and provider calls are
+  unchanged. Neither disclosure is predictive confidence.
+- Refined the descriptive VWAP support factor from binary +/-1 to
+  `tanh((price - VWAP) / (2 * volume-weighted session price dispersion))`.
+  It is neutral at VWAP, symmetric, smooth and bounded, with unchanged weights,
+  directional thresholds and strict Above/Below filters. Flat/insufficient
+  dispersion is explicitly unavailable; raw VWAP remains usable for filters.
+  Live analysis, plotter scoring and historical Model Insight/similar-setup
+  observations share the formula. Historical source granularity is disclosed.
+  Web, desktop and candidate context show dispersion-normalized distance and
+  additive score-point contribution as support/extension, never prediction or
+  entry quality. No extra provider requests are needed.
+- Added Candidate Review with session-only, browser-isolated screening
+  criteria, evidence, lifecycle states and up to the latest 100 evaluations per stock.
+  Market Screener retains its existing one-time results or can start a continuous
+  review and opens Candidate Review automatically. There is no separate one-time
+  Candidate Review workflow or duplicate review button; existing reviews remain
+  accessible from the main navigation. Guidance lives in the collapsed
+  screener guide. Reviews never automatically change the
+  personal watchlist; explicit Pin is available. Full analysis opened from a
+  candidate opts out of the Analysis page's legacy automatic watchlist tracking.
+- Candidate Review follows the shared page background, spacing and dark card
+  styling. Its guide clarifies the 500-stock discovery limit and
+  that repeated qualification is filter consistency, not a best-stock ranking.
+- Candidate Review bounds backend retention to 5,000 latest candidate statuses
+  and 5,000 history entries across all reviews. Oldest history is trimmed with
+  visible disclosure; candidate-capacity exhaustion explicitly pauses the review
+  rather than dropping candidates silently. Latest status and history share one
+  stored snapshot, and evidence JSON is encoded off the server event loop.
+  Browser requests time out after 10 seconds and subsequent polls recover without
+  a page reload, retaining potentially outdated evidence. Non-JSON proxy responses
+  and malformed JSON report the HTTP status instead of a misleading parser error.
+  Saved filters do not
+  change when the screener controls are edited later.
+- Continuous reviews are selective: a first complete pass adds a candidate;
+  stocks that have never matched are not retained as potential candidates.
+  Two consecutive measured failures remove the candidate and its review history.
+  Unknown data is disclosed for existing candidates without becoming a measured
+  failure. Daily filters run before intraday analysis; selected intraday EMA,
+  VWAP, RVOL and freshness checks run on the one-minute reading before remaining
+  timeframes. Failed/unavailable checks skip the remaining analysis that scan.
+  Directional scoring stops when even the remaining readings cannot meet the
+  selected threshold; without a score filter, three usable readings are enough.
+  Background scans process two stocks at a time. The default retained-candidate
+  view discloses Weakening/Data unavailable states until removal or recovery.
+- Continuous reviews run only during today's regular NYSE session, beginning
+  after the first five-minute bar plus a 15-second provider allowance. The exchange
+  calendar respects holidays, daylight saving and early closes. Reviews expire
+  at that day's close and do not resume next day. A complete pass qualifies,
+  and two consecutive measured failures remove; unknown/stale quotes or one-minute bars
+  interrupt streaks without becoming failures.
+  Pausing is terminal for scheduling in this release.
+- Candidate evidence reuses existing price/market-cap/average-volume, percentage,
+  intraday score/EMA/VWAP, daily EMA/SMA and RVOL filters. At least 3/5 usable
+  intraday scores and quotes/one-minute bars within 120 seconds are required.
+  Stored profiles include available one-minute regime, sector-relative returns,
+  normalized factor scores, and VWAP distance without introducing new weights.
+  Provisional coverage and daily dates remain disclosed. Entry, spread/depth,
+  events, borrow and costs are not vetted; qualification is not a trading verdict.
+- Monitoring requires a running backend, not an open browser. Candidate criteria,
+  profiles and evaluation history live only in backend memory and are discarded
+  at today's session close (including completed/paused reviews) or backend restart.
+  There is no candidate database, disk storage or environment-variable setup.
+  Deploy with one backend worker/instance; state is not shared between processes
+  or replicas. Hosts that sleep/scale to zero interrupt monitoring and lose state.
+  A private HTTP-only browser cookie owns reviews; clearing cookies loses access,
+  and there is no account/cross-device recovery in this release.
+  Limits are 3 pending/active monitors and 10 session reviews per browser, 20 active
+  monitors and 100 total session reviews per backend process, and 500 eligible
+  stocks per scan (larger searches require refinement, never silent truncation).
+  History retains up to 100 evaluations per candidate within the shared budget
+  and is discarded at the close.
+  In-memory leases prevent overlapping evaluations of a monitor and recover
+  interrupted runs after at most 180 seconds without a heartbeat. Missed intervals
+  are not replayed; provider speed/server load may delay scans. At close, no new
+  evaluations are scheduled and incomplete results are discarded; already-issued
+  synchronous provider requests may finish in their worker threads.
+
+- Simplified Market Screener score cells to the percentage alone. Coverage,
+  provisional status, quote age, relative volume, and daily-data details are
+  retained in hover tooltips and accessible labels; score rules are unchanged.
+
+- Market Screener Score filtering/ranking and Statistical Analysis's overall
+  direction/average now require at least 3 of 5 usable intraday timeframes,
+  rather than waiting for every longer timeframe. Averages use only valid
+  readings, disclose coverage, and are provisional when coverage is reduced
+  or bars are developing/unknown. Fewer than three readings do not qualify.
+  Individual timeframe data-readiness checks and the stricter Assess Trade
+  Setup five-timeframe requirement remain unchanged.
+
+- Statistical Analysis now suppresses directional scores and regimes when
+  fewer than three valid chronological intraday observations are available
+  (two for historical views). Overall summaries exclude insufficient readings,
+  report timeframe coverage, and disclose included provisional readings.
+  Developing-bar metadata marks individual regimes/scores as provisional;
+  missing completion metadata is explicitly unknown, not assumed complete.
+
+- Moved the Market Screener explainer into a collapsed, keyboard-accessible
+  "i" guide beside the page heading, keeping all filter explanations available.
+
+- Replaced Market Screener presets with Percentage and Direction only types.
+  Percentage retains comparison operators and optional direction-score filtering;
+  Direction only ignores the move from the previous close and uses the same
+  bullish/neutral/bearish score thresholds with at least 3/5 usable timeframes. Optional
+  confirmation filters remain available in both modes.
+- Retained price, market-cap, and three-month average-volume eligibility gates
+  and added adjustable minimums. Scans accept up to 500 supported candidates;
+  larger searches ask users to refine those minimums instead of silently
+  truncating results or starting scoring. Direction candidates use average-volume
+  ordering, never percent-change ordering. Worker concurrency is unchanged.
+
+- Simplified the assessment's main checklist to RVOL, VWAP, 5-minute 9/21
+  EMA, and complete bullish/bearish score for day trades; daily 9/21 EMA
+  and 50/200 SMA for swings. Values/thresholds expand on demand, unmet data
+  or entry checks retain a brief summary without a Warnings section, and risk results live inside the optional
+  collapsed plan. The close button now matches the other modals' 32px control.
+
+- Streamlined assessment results into compact Pass/Fail/Unknown rows with
+  expandable rule explanations and status totals. Removed the Manual checks
+  section in favor of one short limitations notice, and positioned the close
+  control at the top-right. Measured thresholds and risk calculations are unchanged.
+
+- Fixed analysis HTTP 500 errors when daily trend enrichment loads longer
+  history: assessment bar-date metadata now uses the collector's supported
+  1-Year-Daily snapshot rather than a nonexistent All-Time-Daily interval.
+  Added a real-collector regression test and moved Assess Trade Setup beside
+  Review Score History on Analysis, Screener, and Watchlist.
+
+- Added a shared Assess Trade Setup button on the Analysis page and stock
+  detail modals in Screener and Watchlist. Day/Long, Day/Short, Swing/Long,
+  and Swing/Short checklists show Pass/Fail/Unknown with actual values and
+  visible heuristic thresholds; there is no buy/sell verdict or profit probability.
+- Day rules require the regular session, all five valid intraday readings,
+  quotes and the latest one-minute bar within 120 seconds, directional average
+  at least 65 (long) or at most 35 (short), matching 5-minute EMA/VWAP direction,
+  relative volume at least 1.5x, and price within 1% of VWAP. Swing rules use
+  at least 200 daily observations, a disclosed daily bar date, matching daily
+  EMA/SMA direction, and price within 5% of the daily 9 EMA, never an intraday
+  score relabeled as swing. Both require price > $5 and average daily volume
+  > 1 million shares; daily freshness/completed-bar structure needs manual review.
+- Optional, unsaved stock entry/stop/target plans check price ordering,
+  reward/risk at least 2:1, and entry proximity. Dollar risk budget produces
+  whole-share sizing, stop-distance risk, and entry notional before costs/gaps.
+  Spread/depth, events, and support/resistance remain explicitly Unknown;
+  passing measured criteria never means all execution/entry checks are complete.
+  Results are snapshots with manual refresh; open day assessments re-evaluate
+  freshness every 15 seconds. Requests are cancelled on close or stock change.
+
+- Consolidated Trade Journal explanations into one top-level, keyboard-accessible
+  "i" guide with an annotated, fictional sample journal that never changes saved data.
+  Kept the introduction and browser-storage notice visible, aligned the starting
+  capital input and save button, and spaced Reset view & filters from statistics.
+  Status messages, recovery warnings, and deletion confirmations remain visible.
+
+- Improved the Trade Journal with optional setup and day-trade/swing tags,
+  original planned dollar risk, realized R-multiples, and exact-symbol,
+  setup, and style filters that combine with the existing date views.
+  Older records/backups remain compatible; absent tags/risk stay unknown.
+- Added average net win/loss, historical net expectancy, profit factor,
+  average R with sample counts, and a cumulative daily realized P&L chart
+  with accessible data table and daily peak-to-trough drawdown. Open trades
+  and plans are excluded; undated exits are excluded only from the chart
+  and drawdown. Starting capital plus all closed P&L remains unfiltered.
+  Saved risk corrections require confirmation; the cash-flow P&L math
+  and browser-local storage/import safeguards are unchanged.
+
+- Market Screener scores require at least three valid intraday readings.
+  Results disclose coverage and provisional status; fewer than three readings
+  display an informational partial average, excluded from filtering/ranking. Regular-session
+  quote age uses the provider timestamp rather than calculation time; unknown
+  source timestamps remain explicitly unknown. Watchlist/assistant averages
+  retain their existing available-reading semantics.
+- Removed the Market Screener's fixed 1-million-share accumulated-volume
+  minimum for today, retaining its price, market-cap, and average-volume
+  eligibility gates. Added optional time-adjusted relative-volume filtering
+  with the existing historical-profile/linear-fallback source labeling.
+- Added bullish/bearish Day and Swing filter presets. Day uses the complete
+  intraday score, intraday EMA, and VWAP; Swing uses daily EMA and SMA and does
+  not relabel the intraday score as a swing score.
+- Daily EMA/SMA filters use a bounded daily-only enrichment endpoint, reuse
+  existing moving-average formulas, and retain results within the current
+  scan. Selecting a daily filter no longer restarts intraday scoring.
+  Daily bar dates and retrieval failures are surfaced explicitly.
+- Decoupled prior-session intraday EMA seeding from daily SMA history so
+  early-session EMA confirmation remains available without selecting SMA.
+  Seeding does not change the directional score's factor weights or value.
+- Limited displayed market candidates to the same 200-symbol scoring limit
+  and explicitly reported when additional supported matches are omitted.
+
+- Added a daily 9/21 EMA ("swing_trading") trend indicator alongside the
+  existing 5-minute 9/21 EMA ("day_trading"), surfaced on the Analysis page,
+  Watchlist, Market Screener, and desktop analysis window.
+- Fixed the 5-minute 9/21 EMA ("day_trading") being unavailable for roughly
+  the first 105 minutes of every trading session: it previously only had
+  that day's bars to work with (needing 21 of them before the EMA could be
+  computed at all), resetting from scratch every morning. It's now seeded
+  with several prior sessions' 5-minute bars, so it's available immediately
+  at the open and carries over across sessions like a real EMA.
 - Significantly sped up Market Screener scoring (roughly 6x faster on typical
   scans): the 50/200 SMA filter's extra price-history fetch now only runs
-  when that filter is actually selected (automatically rescoring if it's
-  picked after an SMA-less scan already finished), screening concurrency was
+  when that filter is actually selected (now selectively enriching daily
+  indicators if picked after the scan starts), screening concurrency was
   raised from 4 to 10 since the work is network-latency-bound rather than
   CPU-bound, and Yahoo/Nasdaq requests now reuse one shared HTTP connection
   pool instead of opening a new one per symbol.
@@ -93,8 +338,8 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
   this research path while retaining normal quote and analysis support.
 - Added VWAP position to the per-ticker score. Yahoo quote summary has no VWAP
   field, so the app derives a session approximation from Yahoo one-minute
-  closes and bar volumes. Current price at or above VWAP scores `+1`; below
-  VWAP scores `-1`; the declared composite weight is `0.15`.
+  closes and bar volumes. Its support score now uses smooth session-dispersion
+  normalization rather than a binary sign; the declared composite weight is `0.15`.
 - Updated Year-to-Date behavior so the latest point and return use current
   price during regular trading. The post-close historical refresh replaces
   the provisional point with Nasdaq's official daily close, and provisional
@@ -250,7 +495,7 @@ combines six views of a ticker's current behavior:
 | Derivative velocity | Spline slope represented by `avg_derivative` | Measures immediate directional momentum
 | Acceleration confirmation | Two material, same-direction completed-bar spline second-derivative samples | Confirms that velocity is consistently increasing or decreasing
 | Relative volume | Current cumulative volume versus expected historical minute-of-day cumulative volume | Confirms whether participation supports the existing price direction
-| VWAP position | Current price versus a VWAP approximation from Yahoo one-minute closes and volumes | Adds `+1` at/above VWAP and `-1` below VWAP
+| VWAP position | Current price versus a VWAP approximation from Yahoo one-minute closes and volumes | Smooth signed session-dispersion support; zero at VWAP, unavailable with flat/insufficient dispersion
 
 The composite is clipped to `[-1.0, 1.0]` and converted into an easier-to-read
 Bullish/Bearish Score:
