@@ -15,6 +15,102 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
 ## Current Changes
 
+- Added "Compare with SPY" to the Trade Journal. Closed trades in the current view
+  can be grouped by setup or by a new optional "Idea source" tag (Own idea,
+  Community / trade room, Other). For each group, return on starting capital is
+  compared with holding SPY over the same dates (entry-day open to exit-day close,
+  dividends excluded), alongside SPY's average move while trades were open.
+  Groups under 30 trades are flagged as small samples. Only the date range is sent
+  to the server; trades stay in the browser.
+
+- Desktop Chart pages expand up to 1600px wide, with a viewport-aware canvas
+  up to 800px tall while retaining the centered, stacked title and controls.
+  Analysis releases its
+  narrow page-width limit while Chart is selected; other ticker pages retain
+  their compact layout. Mobile sizing is unchanged.
+
+- Improved the main ticker chart's layout: compact controls, a larger mobile
+  plot, and consistent canvas/display dimensions so card padding and competing
+  height rules no longer stretch or compress the rendered chart. Chart data,
+  view selection and interactions are unchanged.
+
+- Refined the shared ticker-page modal with a compact, light navigation header,
+  aligned 44px arrow/select/close controls, clearer focus and disabled states,
+  consistent spacing and softer card borders. Quote summaries use three columns
+  on desktop and two on mobile.
+  Moving-average context and supporting text are more compact. Styling is scoped
+  to the shared ticker-page layout so standalone views retain their appearance;
+  navigation, calculation and request behavior are unchanged.
+
+- Watchlist and Screener ticker details use one primary modal; Analysis search
+  results use the same layout inline below the search box, without a popup or X.
+  Duplicate page action buttons are removed from view in favor of the dropdown
+  and arrows. Learn More, Fundamentals,
+  Chart, Options, score history and trade assessment open
+  as internal pages. Previous/next arrows follow a fixed page order, with a
+  page selector between them and stock-only pages omitted for ETFs. The redundant
+  header title is removed. Escape on a child page returns to its parent; the
+  single X closes the overall Watchlist/Screener modal. Analysis keeps its quote
+  and summary on the Details page of the inline result.
+  Show Breakdown is restored on Details and opens a separate modal; Trend
+  Analysis opens a separate modal above Chart. These are the only analysis
+  actions that launch additional modals; Options breakdown remains an internal
+  page. Closing either modal retains the underlying page and its controls.
+  Existing renderers, requests, caches,
+  form controls and chart interactions are retained; closing a page runs its
+  existing cleanup. Other standalone dialogs are unchanged.
+
+- Trend Analysis quote price, dollar change and percentage share the percentage
+  direction color: green positive, red negative, black zero. Missing values
+  remain N/A; unavailable percentage direction does not imply a color.
+
+- Trend Analysis shows only interactive confirmed-pivot dots, not added close
+  markers. Mobile context cards use compact rows. A separate provider-quote
+  snapshot row shows current price, dollar change and percent change versus
+  previous close; it is distinct from the completed-bar chart endpoint.
+  Selector/action alignment uses matching heights and removes inherited label
+  margins; mobile context rows omit secondary notes (retained in evidence).
+- Trend Analysis dots support hover, tap, and keyboard inspection of prices,
+  displacement from open, timestamps and pivot confirmation times. Axis and
+  detail timestamps use the viewer's local timezone with timezone labels;
+  session calculations remain anchored to the U.S. regular-session open.
+
+- Trend Analysis uses responsive SVG coordinates on mobile, preserving chart
+  height and axis-label readability instead of shrinking a desktop plot.
+  The plot redraws when its container resizes; the open anchor is unchanged.
+
+- Trend Analysis uses a white modal and the shared X close-control styling,
+  with accessible close labeling. Light cards and high-contrast chart colors
+  replace the separate dark theme; opening-price normalization is unchanged.
+
+- Renamed the shared chart action to Trend Analysis, placed beside the chart-view
+  selector. Its visual context modal uses the shared centered analysis-dialog
+  positioning, sizing limits, border, shadow and scrolling rules.
+
+- Chart analysis is now visual-first: compact context cards, a completed-close
+  displacement chart with a dominant zero/open line, candidate zone bands and
+  confirmed pivot markers, a close-proportion bar, and compact level cards.
+  Detailed evidence and calculation methods are collapsed by default.
+- Added on-demand Analyze Chart context to shared web charts, including the
+  focused chart. The modal requests a five-minute snapshot without changing
+  chart mode, opening-price normalization, or existing scores. Only verified
+  completed provider bars are analyzed; missing completion/open data is explicit.
+  A lone closing print right-labeled 16:01 after the completed 16:00 bar is
+  explicitly excluded from analysis, not treated as an extra five-minute bar.
+  Position versus open, proportions of completed closes on each side, crossings,
+  and recent direction are separate observations. Recent direction needs six
+  consecutive bars and uses median pairwise slope; the neutral band is the greater
+  of one cent or 0.02% of open. Persistence labels require 75% of available closes.
+  Candidate support/resistance zones use strict pivots with two completed bars
+  on each side (ten-minute confirmation delay); gaps are never bridged for pivots
+  or recent direction. Zones use OHLC extrema when all bars have validated OHLC,
+  otherwise explicitly use completed closes. Pivot-price clusters span at most
+  twice their padding (the greater of one cent or 25% of mean bar range / mean
+  absolute close change), and show up to three nearest zones per role. Roles are
+  relative to the latest completed close, not predictive confidence. The card
+  discloses timestamps, coverage, methods, and its snapshot-only nature; reopen
+  to refresh. Automated trendlines/formations are intentionally deferred.
+
 - Intraday scores now use completed bars only. The latest still-forming bar is
   set aside (chart unchanged), so 5m, 15m, 30m and 1h readings are ready
   instead of provisional for most of each bar. The score updates when each bar
