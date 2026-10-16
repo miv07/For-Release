@@ -15,6 +15,38 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
 ## Current Changes
 
+- Added a chart-led, price-only profile for stocks and ETFs above the existing
+  analysis. It shows the observed session against prior same-clock history,
+  comparable historical paths separated at the snapshot, a SPY relationship
+  scatterplot, and behavioral/outcome ranges. The redundant older same-time
+  session chart is removed; moving-average structure and volatility history stay.
+  Exact values, sample counts, match dates and methodology remain expandable.
+  These are descriptive historical comparisons, not forecasts or trade signals.
+  - Session-chart legends separately identify the historical P10-P90 band,
+    median, instrument return and SPY. Right-side ticker/SPY dollar-price badges
+    update through existing analysis polling, with "Current Price",
+    "Completed Price" or confirmed regular-session "Closed Price" labels.
+  - "Price consistency" replaces the directional-efficiency label: high means
+    more direct movement up or down; low means more back-and-forth.
+  - Full-session behavioral dots are black while the displayed snapshot is
+    incomplete and blue once closing bars arrive, with a legend and a warning
+    that partial-session values are being compared with full-day history.
+  - Range bars label their actual P10/P90 endpoints and classify observations
+    as below, within or above usual. Plot y-axis titles run vertically beside
+    percentage ticks. Mobile charts scroll within their panels.
+  - Outcome panels distinguish completed sessions, insufficient samples and
+    unavailable matching; next-30-minute outcomes are omitted when that horizon
+    would extend past the close.
+
+- Details cards no longer cast shadows. The analysis-view selector switches
+  between Session Trend Analysis and Technical Scenarios in place, sharing the
+  existing scenario controls and horizons with the separate Scenarios page.
+  Hidden scenarios stop refreshing. Analysis reserves scrollbar space to keep
+  first-load desktop page gutters stable, and embedded Scenarios no longer
+  display a second card outline.
+  Day/Swing overview and trade cards use uniform thin borders rather than thick
+  colored left accents; setup status text retains its directional color.
+
 - Added "Compare with SPY" to the Trade Journal. Closed trades in the current view
   can be grouped by setup or by a new optional "Idea source" tag (Own idea,
   Community / trade room, Other). For each group, return on starting capital is
