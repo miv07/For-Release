@@ -15,6 +15,30 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
 ## Current Changes
 
+- Ask Pensive now retrieves only curated public site guidance, including Details
+  navigation and historical-comparison explanations, rather than repository
+  source files. A separate public index excludes the previous full-repository
+  collection from searches. Embedding ingestion uses small, resumable batches.
+  - Chat receives the viewed ticker, selected historical session, daily lookback
+    and report timestamp. Explicit tickers override the viewed ticker; missing
+    symbols prompt clarification.
+  - Price-action and earnings questions use the same historical-comparison
+    service and cache as Details. Replies preserve observation times, sample
+    counts, backend P10/P90 classifications and data-coverage limitations.
+    Daily closing-return references remain distinct from same-clock history;
+    unusual directional returns are not labeled annualized volatility.
+  - The model orders relevant evidence sections through validated structured
+    output; the app renders verified facts rather than accepting unsupported
+    numerical commentary. Model/tunnel failures retain a clearly labeled
+    analytical summary, and earnings failures preserve available price evidence.
+  - Company-overview requests such as "tell me more about AAPL" now use
+    provider-backed company information instead of model memory. Ticker-specific
+    replies without a data tool are withheld and explicitly marked unverified,
+    preventing fabricated quote placeholders, regimes or financial claims.
+  - Ollama models that specifically reject native tool calling are retried once
+    without tools. Other model errors remain visible, and fallback wording no
+    longer assumes that an unsuccessful response means the model is offline.
+
 - Added a chart-led, price-only profile for stocks and ETFs above the existing
   analysis. It shows the observed session against prior same-clock history,
   comparable historical paths separated at the snapshot, a SPY relationship
