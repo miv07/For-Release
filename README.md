@@ -15,6 +15,207 @@ Visit the live project: [Pensive Trader](https://pensivetrader.com/)
 
 ## Current Changes
 
+- Improved Intraday/Swing profiles with setup-matched and volatility-adjusted
+  swing ranges, non-overlapping sample counts, recency-weighted comparable
+  outcomes, walk-forward range coverage, opening-gap/relative-volume matching,
+  robust market sensitivity, and faster concurrent profile refreshes.
+
+- Made "Similar technical setups" look-ahead cones follow the session. Rest of
+  today now starts from the latest completed 5-minute close even with 15-minute
+  setup matching ("Update from" is relabelled "Match setups on"). During regular
+  hours, the 1/5/20-day cones re-scale to that price and refresh every 30 seconds
+  instead of staying on the prior daily close.
+
+- Pinned the deployment interpreter to Python 3.14 in `.python-version`.
+  FastAPI Cloud's Python 3.15 selection could not install locked ONNX Runtime
+  1.30.0, a ChromaDB dependency with only CPython 3.14 ABI wheels and no source
+  distribution. Dependency versions remain unchanged.
+
+- Improved initial Intraday/Swing profile loading by reusing bounded exchange
+  schedules, avoiding per-row DataFrame construction in session-gap checks, and
+  reusing already-fetched history across profile views. Price-history freshness
+  stays tied to the original fetch, without extending the 30-second input limit.
+  Deterministic provider-mocked builds improved from 3.89s to 1.59s with identical
+  full response JSON; live provider/network latency is additional.
+
+- Redesigned Details around an Intraday / Swing choice, with Intraday selected
+  by default and the interactive Price chart directly below the quote card.
+  Swing emphasizes daily structure, moving averages, volatility and multi-day
+  holding history, with an independent 5/10/20-day holding-period selector.
+  Added compact trailing/forward P/E, EPS and profit-margin cards and an
+  Open full Fundamentals shortcut for stocks; unavailable values, losses and
+  ETF limitations remain explicit.
+
+- Made Intraday comparisons and statistical evidence expanded by default while
+  retaining user collapse choices. Moved exact evidence, sample counts and data
+  methodology behind an accessible information icon and modal. Removed the
+  comparable-date/distance listing and historical stock/fund context block.
+  Removed moving-average position dots and their legend, retaining exact prices
+  and the red SMA proximity highlight within 0.25%. Compacted desktop comparison
+  bars into two columns. Mobile chart selectors and the Analyze / refresh button
+  now fit their content rather than stretching unnecessarily.
+
+- Manual next-session what-ifs now accept an opening-gap percentage relative
+  to the latest completed session close: +2 means 2% higher, -1 means 1% lower,
+  and 0 means unchanged. The server converts that assumption into a price using
+  the validated previous close. Controls align on desktop and stack on mobile.
+  This compares subsequent outcomes after similar historical gaps; it does not
+  predict the next opening price. Missing, stale or out-of-session live quotes
+  show an explicit unavailable state and pause automatic retries until the user
+  refreshes or changes the assumption. Genuine provider failures remain visible.
+
+- Economic/FOMC calendar sources now load independently. If FRED returns a
+  maintenance page or one source fails, verified events from the responding
+  source and independent expiration notices remain visible with a partial-calendar
+  warning; incomplete responses are not cached as successful calendars.
+  Clear all notifications now has consistent styling on the homepage and
+  dashboard pages.
+
+- Scenario/profile requests now share identical in-progress builds and wait in a
+  bounded queue instead of failing after 0.1 seconds of worker contention.
+  Queue overload/timeouts remain explicit with retry guidance. A busy refresh
+  retains its previous timestamped chart rather than making it disappear.
+
+- Fixed Look ahead intraday time labels to use the exchange session's actual
+  opening timestamp rather than treating a UTC snapshot's offset as New York
+  time. Local timezone appears once below the axis; endpoint labels stay inside
+  the plot. Unchanged refreshes retain the chart SVG, same-session price axes
+  expand only when needed, and the refresh status reserves space to avoid jumps.
+
+- Combined historical behavior paths and technical setup ranges into one
+  Details card. The default is "Similar session behavior: past paths"; the
+  alternative is "Similar technical setups: rest-of-session ranges". Their
+  matching engines remain distinct. Support/resistance stays visible separately,
+  and pre/post-market and multi-day horizons remain available in the technical view.
+
+- Extended Similar session behavior with 5/10/20-trading-day actual historical
+  closing paths, including overnight gaps. The same behavior-matched cohort now
+  shows ending returns and interim dip/rise beside general same-clock history.
+  Only complete windows ending before the displayed session qualify; sparse
+  ranges/rates are suppressed below eight outcomes without forcing matches.
+  Moved general holding history into the behavior card; Swing now has its own
+  holding-period selector. Historical reviews hide this latest-data-only reference.
+  The rolling 58-calendar-day intraday history still limits available samples.
+  Added the feature to Notifications and About.
+
+- Merged Technical Scenarios and the overlapping Swing projection directly into
+  Details on Analysis, Screener, and Watchlist for stocks and ETFs. Switch between
+  observed session evidence and historical what-if paths; swing trend and
+  overnight holding-risk context remain available without a duplicate projection.
+  Added a visual pre/post-market game plan targeting the next regular session.
+  Compare a fresh timestamped extended-hours quote
+  or manual opening-gap percentage assumption with similar historical opening gaps,
+  close/high/low percentile ranges, and gap-fill frequencies. Missing/stale
+  quotes and insufficient samples are explicit; these are historical examples,
+  not forecasts or trading recommendations.
+  Removed the retired Swing projection renderer, unused per-day bands and its
+  separate SPY daily-history request; the profile payload now contains holding-risk
+  summaries without the obsolete Swing `path`/`benchmark` fields. Scenario charts
+  reuse common SVG and number-formatting helpers.
+
+- Added What's new to Notifications and About from one shared feature-update
+  catalog. Unread feature updates highlight the bell and can be marked read
+  per browser, independently of SMA alerts and calendar notices.
+  For future user-facing features, add an announcement with a unique
+  `data-feature-release` ID in [feature_updates.html](HTML_Interface/feature_updates.html),
+  update the About capability details, and add a release note here. Keep IDs
+  stable for existing announcements; new IDs make new announcements unread.
+
+- Added a notification bell beside Contact. It turns red for unread SMA alerts
+  away from Watchlist, and for calendar events this trading week on any page.
+  The bell lists affected symbols and calendar notices; Market Environment no
+  longer owns the calendar indicator or notices. Away from Watchlist, saved
+  symbols are checked every 30 seconds while the page is visible.
+
+- Made the minimized Ask Pensive button slightly smaller while keeping a
+  44px touch target. Watchlist/portfolio requests and shared analysis fetches
+  now report HTTP status and readable upstream errors instead of JSON parser
+  errors when a proxy returns plain text or HTML.
+
+- Watchlist rows glow light blue when price comes within 0.25% of a 50-, 100-,
+  or 200-day SMA, without extra row text. A small bold white explanation
+  above the list describes the alerts on a subtle dark background.
+  Click/tap or keyboard activation opens Details and dismisses
+  the alert across reloads; each SMA re-arms after price leaves and re-enters
+  its range. Unread alerts remain until dismissed. The Swing Trade card
+  turns matching SMA labels and values red, without extra text or background,
+  independently of dismissal.
+  Daily averages reuse background-cached history; alerts begin once it loads.
+
+- Raised the minimized Ask Pensive button on mobile homepages to leave the
+  copyright text unobstructed; other pages retain the existing position.
+
+- Fixed Analysis refresh caching: its HTML is no longer cached, and unversioned
+  CSS imports revalidate before reuse. Content-versioned assets keep their
+  existing long-lived cache policy.
+
+- Fixed Ask Pensive sizing conflicts with shared window styles, unwanted page
+  form spacing, and long-message overflow on mobile. Kept the assistant docked
+  and made its minimize control touch-sized.
+
+- Increased Details body text, evidence notes, table text and chart labels
+  slightly for readability, keeping the compact panel width and spacing.
+
+- Kept the Details white results panel at the same 960px maximum width as the
+  other selections; its embedded price chart no longer triggers the standalone
+  chart's expanded desktop panel size.
+
+- Compacted Details chart/evidence spacing, card padding and table rows without
+  hiding content or reducing text sizes. Profile SVG charts stop growing at
+  900px wide on large screens; mobile charts retain horizontal scrolling.
+
+- Simplified the homepage: removed the desktop icon grid, iframe app launcher
+  and its dedicated JavaScript/CSS. Tools open as ordinary pages through the
+  compact navigation menu; Get Started opens the existing closable information
+  modal, with a direct-link fallback when JavaScript is unavailable. Market
+  Environment, About and Contact remain visible in the homepage header.
+  Ask Pensive starts minimized as a floating chat button on every standalone
+  page. It opens as a non-blocking corner panel and retains the conversation
+  while minimized. Embedded information pages use the parent page's assistant
+  rather than duplicating it.
+  Market notices and existing tool URLs remain available.
+
+- Renamed Candidate Review to Screener Monitor in navigation and the monitoring
+  interface, with a subtitle explaining its five-minute screener checks.
+  Candidate statuses now display "Matching filters" and "First failed check"
+  instead of "Qualified" and "Weakening", including evaluation history.
+  Existing URLs, API status values and monitoring behavior remain unchanged.
+
+- Ask Pensive separates observation timeframes, Details comparison lookbacks and
+  chart aggregation, reusing the existing Analysis/Details services and caches.
+  Today, yesterday and available ISO sessions stay exact; supported long-term
+  selections use year-to-date, trailing 1/2/5 years and all-time chart intervals.
+  Unsupported week/month/custom-range windows are disclosed rather than silently
+  answering for one session or confusing weekly bars with one-week returns.
+  - Ticker resolution no longer mistakes conversational words such as "you" or
+    "can" for the requested AAPL symbol. Followups remember explicit ticker and
+    timeframe changes; unchanged browser selections and automatic timestamp
+    refreshes do not overwrite them.
+  - Evidence now includes the existing profile's named daily/intraday volatility
+    measures when requested, plus shared Analysis quote, regime, readiness and
+    SPY/sector comparisons. Historical-session requests never receive substituted
+    latest volatility or current quote/regime. Original times, sample counts,
+    comparison bases, sensitivity adjustments and missing data remain explicit.
+  - Responses separate the direct answer, verified evidence, market/earnings
+    context and limitations. Numerical prose remains backend-rendered; malformed
+    model commentary cannot invent statistics or overwrite classifications.
+  - Combined questions and model tool requests execute multiple tools, with
+    validated arguments, structured correction feedback, duplicate prevention,
+    two execution rounds/four calls and a 40-second budget. Successful evidence
+    survives provider/model failures. Local Ollama SDK and gateway responses use
+    the same validated tool-call shape.
+  - Added fixture-driven conversation regressions for timeframe semantics,
+    followups, multiple tickers/tools, invalid/repeated calls, call/time limits,
+    partial failures, provisional evidence and model outages.
+
+- Company leadership and headquarters prefer Yahoo Finance's company profile,
+  preserving officer titles and using Wikidata when those fields are unavailable.
+  Source labels reflect the providers actually used. Fallback leadership
+  respects Wikidata tenure dates and statement ranks,
+  separating current CEOs and chairpersons from former executives. Multilingual
+  fallback resolves names without English-specific labels; unresolved entity IDs
+  are logged and omitted instead of appearing as people's names.
+
 - Ask Pensive now retrieves only curated public site guidance, including Details
   navigation and historical-comparison explanations, rather than repository
   source files. A separate public index excludes the previous full-repository
